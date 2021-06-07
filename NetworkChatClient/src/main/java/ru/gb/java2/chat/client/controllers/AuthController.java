@@ -7,15 +7,13 @@ import javafx.scene.control.Button;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import ru.gb.java2.chat.client.ClientChat;
-import ru.gb.java2.chat.client.Network;
+import ru.gb.java2.chat.client.dialogs.Dialogs;
+import ru.gb.java2.chat.client.model.Network;
+import ru.gb.java2.chat.client.model.ReadMessageListener;
 
 import java.io.IOException;
-import java.util.function.Consumer;
 
 public class AuthController {
-    private static final String INVALID_CREDENTIALS = "Некорректный ввод данных";
-    private static final String CREDENTIALS_REQUIRED = "Логин и пароль должны быть указаны!";
-
     private static final String AUTH_COMMAND = "/auth";
     private static final String AUTH_OK_COMMAND = "/authOk";
 
@@ -25,15 +23,20 @@ public class AuthController {
     private PasswordField passwordField;
     @FXML
     private Button authButton;
+    private ReadMessageListener readMessageListener;
 
-    private ClientChat clientChat;
 
     @FXML
     public void executeAuth(ActionEvent actionEvent) {
         String login = loginField.getText();
         String password = passwordField.getText();
         if (login == null || login.isBlank() || password == null || password.isBlank()) {
-            clientChat.showAuthErrorDialog(INVALID_CREDENTIALS, CREDENTIALS_REQUIRED);
+            Dialogs.AuthError.EMPTY_CREDENTIALS.show();
+            return;
+        }
+
+        if (!connectToServer()) {
+            Dialogs.NetworkError.SERVER_CONNECT.show();
             return;
         }
 
@@ -41,33 +44,36 @@ public class AuthController {
         try {
             Network.getInstance().sendMessage(authCommandMessage);
         } catch (IOException e) {
-            clientChat.showNetworkErrorDialog("Ошибка передачи данных по сети", "Не удалось отправить сообщение!");
+            Dialogs.NetworkError.SEND_MESSAGE.show();
             e.printStackTrace();
         }
     }
 
-    public void setClientChat(ClientChat clientChat) {
-        this.clientChat = clientChat;
+    private boolean connectToServer() {
+        Network network = getNetwork();
+        return network.isConnected() || network.connect();
+    }
+
+    private Network getNetwork() {
+        return Network.getInstance();
     }
 
     public void initMessageHandler() {
-        Network.getInstance().waitMessages(new Consumer<String>() {
+        readMessageListener = getNetwork().addReadMessageListener(new ReadMessageListener() {
             @Override
-            public void accept(String message) {
+            public void processReceivedMessage(String message) {
                 if (message.startsWith(AUTH_OK_COMMAND)) {
                     String[] parts = message.split(" ");
                     String username = parts[1];
-                    Thread.currentThread().interrupt();
-                    Platform.runLater(() -> {
-                        clientChat.getChatStage().setTitle(username);
-                        clientChat.getAuthStage().close();
-                    });
+                    Platform.runLater(() -> ClientChat.INSTANCE.switchToMainChatWindow(username));
                 } else {
-                    Platform.runLater(() -> {
-                        clientChat.showAuthErrorDialog(INVALID_CREDENTIALS, "Пользователя с таким логином и паролем не существует!");
-                    });
+                    Platform.runLater(Dialogs.AuthError.INVALID_CREDENTIALS::show);
                 }
             }
         });
+    }
+
+    public void close() {
+        getNetwork().removeReadMessageListener(readMessageListener);
     }
 }

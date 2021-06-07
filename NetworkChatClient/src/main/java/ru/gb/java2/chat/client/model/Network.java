@@ -1,10 +1,11 @@
-package ru.gb.java2.chat.client;
+package ru.gb.java2.chat.client.model;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
-import java.util.function.Consumer;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Network {
 
@@ -19,6 +20,11 @@ public class Network {
     private DataInputStream socketInput;
     private DataOutputStream socketOutput;
 
+    private List<ReadMessageListener> listeners = new CopyOnWriteArrayList<>();
+    private Thread readMessageProcess;
+    private boolean connected;
+
+
     public static Network getInstance() {
         if (INSTANCE == null) {
             INSTANCE = new Network();
@@ -29,7 +35,7 @@ public class Network {
 
 
     private Network(String host, int port) {
-        this.host = "192.168.1.72";
+        this.host = host;
         this.port = port;
     }
 
@@ -42,12 +48,41 @@ public class Network {
             socket = new Socket(host, port);
             socketInput = new DataInputStream(socket.getInputStream());
             socketOutput = new DataOutputStream(socket.getOutputStream());
+            readMessageProcess = startReadMessageProcess();
+            connected = true;
             return true;
         } catch (IOException e) {
             e.printStackTrace();
             System.err.println("Failed to establish connection");
             return false;
         }
+    }
+
+    public boolean isConnected() {
+        return connected;
+    }
+
+    private Thread startReadMessageProcess() {
+        Thread thread = new Thread(() -> {
+            while (true) {
+                try {
+                    if (Thread.currentThread().isInterrupted()) {
+                        break;
+                    }
+                    String message = socketInput.readUTF();
+                    for (ReadMessageListener messageListener : listeners) {
+                        messageListener.processReceivedMessage(message);
+                    }
+                } catch (IOException e) {
+                    System.err.println("Failed to read message from server");
+                    close();
+                    break;
+                }
+            }
+        });
+        thread.setDaemon(true);
+        thread.start();
+        return thread;
     }
 
     public void sendMessage(String message) throws IOException {
@@ -59,27 +94,18 @@ public class Network {
         }
     }
 
-    public void waitMessages(Consumer<String> messageHandler) {
-        Thread thread = new Thread(() -> {
-            while (true) {
-                try {
-                    if (Thread.currentThread().isInterrupted()) {
-                        break;
-                    }
-                    String message = socketInput.readUTF();
-                    messageHandler.accept(message);
-                } catch (IOException e) {
-                    System.err.println("Failed to read message from server");
-                    break;
-                }
-            }
-        });
-        thread.setDaemon(true);
-        thread.start();
+    public ReadMessageListener addReadMessageListener(ReadMessageListener listener) {
+        listeners.add(listener);
+        return listener;
+    }
+
+    public void removeReadMessageListener(ReadMessageListener listener) {
+        listeners.remove(listener);
     }
 
     public void close() {
         try {
+            readMessageProcess.interrupt();
             socket.close();
         } catch (IOException e) {
             e.printStackTrace();

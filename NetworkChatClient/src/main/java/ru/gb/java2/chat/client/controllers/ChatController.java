@@ -1,4 +1,4 @@
-package ru.gb.java2.chat.client;
+package ru.gb.java2.chat.client.controllers;
 
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -8,12 +8,21 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.TextArea;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import ru.gb.java2.chat.client.dialogs.Dialogs;
+import ru.gb.java2.chat.client.model.Network;
+import ru.gb.java2.chat.client.model.ReadMessageListener;
 
 import java.io.IOException;
 import java.text.DateFormat;
 import java.util.Date;
+import java.util.List;
 
-public class ViewController {
+public class ChatController {
+
+    private static final List<String> USERS_TEST_DATA = List.of(
+            "username1",
+            "username2",
+            "username3");
 
     @FXML
     public ListView<String> usersList;
@@ -24,11 +33,10 @@ public class ViewController {
     @FXML
     private TextArea messageTextArea;
 
-    private ClientChat application;
 
     @FXML
     public void initialize() {
-        usersList.setItems(FXCollections.observableArrayList(ClientChat.USERS_TEST_DATA));
+        usersList.setItems(FXCollections.observableArrayList(USERS_TEST_DATA));
     }
 
     @FXML
@@ -48,7 +56,7 @@ public class ViewController {
             message = sender != null ? String.join(": ", sender, message) : message; // sender + ": " + message
             Network.getInstance().sendMessage(message);
         } catch (IOException e) {
-            application.showNetworkErrorDialog("Ошибка передачи данных по сети", "Не удалось отправить сообщение!");
+            Dialogs.NetworkError.SEND_MESSAGE.show();
         }
         appendMessageToChat("Я", message);
     }
@@ -79,12 +87,12 @@ public class ViewController {
     }
 
     public void initMessageHandler() {
-        Network.getInstance().waitMessages(message -> Platform.runLater(() -> {
-            ViewController.this.appendMessageToChat("Server", message);
-        }));
+        Network.getInstance().addReadMessageListener(new ReadMessageListener() {
+            @Override
+            public void processReceivedMessage(String message) {
+                Platform.runLater(() -> ChatController.this.appendMessageToChat("Server", message));
+            }
+        });
     }
 
-    public void setApplication(ClientChat application) {
-        this.application = application;
-    }
 }

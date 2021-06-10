@@ -53,7 +53,7 @@ public class ClientChat extends Application {
         return authLoader.getController();
     }
 
-    private ChatController getChatController() {
+    public ChatController getChatController() {
         return chatWindowLoader.getController();
     }
 
@@ -112,8 +112,8 @@ public class ClientChat extends Application {
 
     public void switchToMainChatWindow(String username) {
         getPrimaryStage().setTitle(username);
+        getChatController().initMessageHandler();
         getAuthController().close();
         getAuthStage().close();
-        getChatController().initMessageHandler();
     }
 }

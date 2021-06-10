@@ -1,5 +1,6 @@
 package ru.gb.java2.chat.server.chat;
 
+import ru.gb.java2.chat.clientserver.Command;
 import ru.gb.java2.chat.server.chat.auth.AuthService;
 
 import java.io.IOException;
@@ -34,23 +35,55 @@ public class MyServer {
         clientHandler.handle();
     }
 
-    public void broadcastMessage(String message, ClientHandler sender) throws IOException {
+    public synchronized void broadcastMessage(String message, ClientHandler sender) throws IOException {
         for (ClientHandler client : clients) {
             if (client != sender) {
-                client.sendMessage(message);
+                client.sendCommand(Command.clientMessageCommand(sender.getUsername(), message));
             }
         }
     }
 
-    public void subscribe(ClientHandler clientHandler) {
+    public synchronized void subscribe(ClientHandler clientHandler) throws IOException {
         clients.add(clientHandler);
+        notifyClientsUsersListUpdated();
     }
 
-    public void unsubscribe(ClientHandler clientHandler) {
+    public synchronized void unsubscribe(ClientHandler clientHandler) throws IOException {
         clients.remove(clientHandler);
+        notifyClientsUsersListUpdated();
     }
 
     public AuthService getAuthService() {
         return authService;
+    }
+
+    public synchronized boolean isUsernameBusy(String username) {
+        for (ClientHandler client : clients) {
+            if (client.getUsername().equals(username)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public synchronized void sendPrivateMessage(ClientHandler sender, String recipient, String privateMessage) throws IOException {
+        for (ClientHandler client : clients) {
+            if (client != sender && client.getUsername().equals(recipient)) {
+                client.sendCommand(Command.clientMessageCommand(sender.getUsername(), privateMessage));
+                break;
+            }
+        }
+    }
+
+    private void notifyClientsUsersListUpdated() throws IOException {
+        List<String> users = new ArrayList<>();
+        for (ClientHandler client : clients) {
+            users.add(client.getUsername());
+        }
+
+        for (ClientHandler client : clients) {
+            client.sendCommand(Command.updateUsersListCommand(users));
+        }
+
     }
 }

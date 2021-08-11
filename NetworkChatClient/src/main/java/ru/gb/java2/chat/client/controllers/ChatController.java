@@ -107,8 +107,18 @@ public class ChatController {
 
     public void reconnectToServer(ActionEvent actionEvent) {
         Network network = Network.getInstance();
-        if (!network.isConnected()) {
-            network.connect();
+        if (network.isConnected()) {
+            return;
+        }
+
+        try {
+            if (network.connect()) {
+                network.sendAuthMessage(network.getLastLogin(), network.getLastPassword());
+            } else {
+                throw new Exception("Failed to connect");
+            }
+        } catch (Exception e) {
+            Dialogs.NetworkError.SEND_MESSAGE.show();
         }
     }
 }

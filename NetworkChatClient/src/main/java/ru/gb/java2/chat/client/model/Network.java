@@ -23,6 +23,8 @@ public class Network {
     private List<ReadCommandListener> listeners = new CopyOnWriteArrayList<>();
     private Thread readMessageProcess;
     private boolean connected;
+    private String lastLogin;
+    private String lastPassword;
 
 
     public static Network getInstance() {
@@ -57,6 +59,8 @@ public class Network {
             return false;
         }
     }
+
+
 
     public boolean isConnected() {
         return connected;
@@ -138,5 +142,21 @@ public class Network {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public void setLastLogin(String lastLogin) {
+        this.lastLogin = lastLogin;
+    }
+
+    public String getLastLogin() {
+        return lastLogin;
+    }
+
+    public void setLastPassword(String lastPassword) {
+        this.lastPassword = lastPassword;
+    }
+
+    public String getLastPassword() {
+        return lastPassword;
     }
 }

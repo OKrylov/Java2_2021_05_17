@@ -9,9 +9,11 @@ import ru.gb.java2.chat.clientserver.commands.PublicMessageCommandData;
 import java.io.*;
 import java.net.Socket;
 import java.util.Timer;
+import java.util.TimerTask;
 
 public class ClientHandler {
 
+    private static final int CONNECTION_REFUSE_TIMEOUT = 120_00;
     private final MyServer server;
     private final Socket clientSocket;
     private ObjectInputStream inputStream;
@@ -44,6 +46,9 @@ public class ClientHandler {
     }
 
     private void authentication() throws IOException {
+
+        Timer timer = createCloseConnectionByTimeoutTimer();
+
         while (true) {
             Command command = readCommand();
             if (command == null) {
@@ -62,6 +67,7 @@ public class ClientHandler {
                     sendCommand(Command.errorCommand("Такой юзер уже существует!"));
                 } else {
                     this.username = username;
+                    timer.cancel();
                     sendCommand(Command.authOkCommand(username));
                     server.subscribe(this);
                     return;
@@ -70,6 +76,23 @@ public class ClientHandler {
         }
     }
 
+    private Timer createCloseConnectionByTimeoutTimer() {
+        Timer timer = new Timer();
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                if (username == null) {
+                    try {
+                        closeConnection();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }, CONNECTION_REFUSE_TIMEOUT);
+
+        return timer;
+    }
 
 
     private Command readCommand() throws IOException {

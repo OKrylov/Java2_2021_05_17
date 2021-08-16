@@ -9,6 +9,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Network {
 
+
     private static final int SERVER_PORT = 8189;
     private static final String SERVER_HOST = "localhost";
 
@@ -25,6 +26,7 @@ public class Network {
     private boolean connected;
     private String lastLogin;
     private String lastPassword;
+    private String currentUsername;
 
 
     public static Network getInstance() {
@@ -158,5 +160,17 @@ public class Network {
 
     public String getLastPassword() {
         return lastPassword;
+    }
+
+    public void setCurrentUsername(String currentUsername) {
+        this.currentUsername = currentUsername;
+    }
+
+    public String getCurrentUsername() {
+        return currentUsername;
+    }
+
+    public void changeUsername(String newUsername) throws IOException {
+        sendCommand(Command.updateUsernameCommand(newUsername));
     }
 }

@@ -7,8 +7,10 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import ru.gb.java2.chat.client.ClientChat;
 import ru.gb.java2.chat.client.dialogs.Dialogs;
 import ru.gb.java2.chat.client.model.Network;
 import ru.gb.java2.chat.client.model.ReadCommandListener;
@@ -21,6 +23,7 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 public class ChatController {
 
@@ -35,7 +38,6 @@ public class ChatController {
     @FXML
     private TextArea messageTextArea;
 
-
     @FXML
     private void sendMessage() {
         String message = messageTextArea.getText().trim();
@@ -44,11 +46,7 @@ public class ChatController {
             return;
         }
 
-        String recipient = null;
-        if (!usersList.getSelectionModel().isEmpty()) {
-            recipient = usersList.getSelectionModel().getSelectedItem();
-        }
-
+        String recipient = getSelectedUser();
         try {
             if (recipient != null) {
                 Network.getInstance().sendPrivateMessage(recipient, message);
@@ -59,6 +57,13 @@ public class ChatController {
             Dialogs.NetworkError.SEND_MESSAGE.show();
         }
         appendMessageToChat("Я", message);
+    }
+
+    private String getSelectedUser() {
+        if (!usersList.getSelectionModel().isEmpty()) {
+            return usersList.getSelectionModel().getSelectedItem();
+        }
+        return null;
     }
 
     private void appendMessageToChat(String sender, String message) {
@@ -119,6 +124,27 @@ public class ChatController {
             }
         } catch (Exception e) {
             Dialogs.NetworkError.SEND_MESSAGE.show();
+        }
+    }
+
+    public void closeChat(ActionEvent actionEvent) {
+        ClientChat.INSTANCE.getPrimaryStage().close();
+    }
+
+    public void changeUsername(ActionEvent actionEvent) {
+        TextInputDialog editDialog = new TextInputDialog(Network.getInstance().getCurrentUsername());
+        editDialog.setTitle("Изменить юзернейм");
+        editDialog.setHeaderText("Введите новый юзернейм");
+        editDialog.setContentText("Username:");
+
+        Optional<String> result = editDialog.showAndWait();
+        if (result.isPresent()) {
+            try {
+                Network.getInstance().changeUsername(result.get());
+            } catch (IOException e) {
+                Dialogs.NetworkError.SEND_MESSAGE.show();
+            }
+
         }
     }
 }

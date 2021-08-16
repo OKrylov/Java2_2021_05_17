@@ -5,6 +5,7 @@ import ru.gb.java2.chat.clientserver.CommandType;
 import ru.gb.java2.chat.clientserver.commands.AuthCommandData;
 import ru.gb.java2.chat.clientserver.commands.PrivateMessageCommandData;
 import ru.gb.java2.chat.clientserver.commands.PublicMessageCommandData;
+import ru.gb.java2.chat.clientserver.commands.UpdateUsernameCommandData;
 
 import java.io.*;
 import java.net.Socket;
@@ -13,7 +14,7 @@ import java.util.TimerTask;
 
 public class ClientHandler {
 
-    private static final int CONNECTION_REFUSE_TIMEOUT = 120_00;
+    private static final int CONNECTION_REFUSE_TIMEOUT = 120_000;
     private final MyServer server;
     private final Socket clientSocket;
     private ObjectInputStream inputStream;
@@ -47,7 +48,7 @@ public class ClientHandler {
 
     private void authentication() throws IOException {
 
-        Timer timer = createCloseConnectionByTimeoutTimer();
+//        Timer timer = createCloseConnectionByTimeoutTimer();
 
         while (true) {
             Command command = readCommand();
@@ -67,7 +68,7 @@ public class ClientHandler {
                     sendCommand(Command.errorCommand("Такой юзер уже существует!"));
                 } else {
                     this.username = username;
-                    timer.cancel();
+//                    timer.cancel();
                     sendCommand(Command.authOkCommand(username));
                     server.subscribe(this);
                     return;
@@ -107,6 +108,7 @@ public class ClientHandler {
     }
 
     private void closeConnection() throws IOException {
+        System.out.println("close connection");
         server.unsubscribe(this);
         clientSocket.close();
     }
@@ -131,6 +133,15 @@ public class ClientHandler {
                 case PUBLIC_MESSAGE: {
                     PublicMessageCommandData data = (PublicMessageCommandData) command.getData();
                     processMessage(data.getMessage());
+                    break;
+                }
+                case UPDATE_USERNAME: {
+                    UpdateUsernameCommandData data = (UpdateUsernameCommandData) command.getData();
+                    String newUsername = data.getUsername();
+                    server.getAuthService().updateUsername(username, newUsername);
+                    username = newUsername;
+                    server.notifyClientsUsersListUpdated();
+                    break;
                 }
             }
         }

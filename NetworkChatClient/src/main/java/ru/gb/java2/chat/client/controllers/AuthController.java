@@ -70,6 +70,7 @@ public class AuthController {
                 if (command.getType() == CommandType.AUTH_OK) {
                     AuthOkCommandData data = (AuthOkCommandData) command.getData();
                     String username = data.getUsername();
+                    Network.getInstance().setCurrentUsername(username);
                     Platform.runLater(() -> ClientChat.INSTANCE.switchToMainChatWindow(username));
                 } else {
                     Platform.runLater(Dialogs.AuthError.INVALID_CREDENTIALS::show);

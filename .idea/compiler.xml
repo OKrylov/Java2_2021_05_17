@@ -8,11 +8,13 @@
         <outputRelativeToContentRoot value="true" />
         <module name="NetworkChatClientServer" />
         <module name="NetworkChatClient" />
+        <module name="NetworkChatServer" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
-      <module name="NetworkChatClient" target="11" />
-      <module name="NetworkChatClientServer" target="11" />
+      <module name="NetworkChatClient" target="16" />
+      <module name="NetworkChatClientServer" target="16" />
+      <module name="NetworkChatServer" target="16" />
     </bytecodeTargetLevel>
   </component>
 </project>

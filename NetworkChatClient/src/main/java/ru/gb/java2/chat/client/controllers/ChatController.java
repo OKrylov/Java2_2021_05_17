@@ -176,8 +176,8 @@ public class ChatController {
     }
 
     private void loadChatHistory() {
-        List<String> rows = chatHistoryService.loadLastRows(LAST_HISTORY_ROWS_NUMBER);
+        String rows = chatHistoryService.loadLastRows(LAST_HISTORY_ROWS_NUMBER);
         chatHistory.clear();
-        chatHistory.setText(String.join("\n", rows));
+        chatHistory.setText(rows);
     }
 }

@@ -2,9 +2,6 @@ package ru.gb.java2.chat.client.service;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Consumer;
 
 public class ChatHistory implements AutoCloseable {
 
@@ -49,23 +46,15 @@ public class ChatHistory implements AutoCloseable {
         }
     }
 
-    public List<String> loadLastRows(int rowsNumber) {
-        List<String> result = new ArrayList<>();
-
+    public String loadLastRows(int rowsNumber) {
         try(RandomAccessFile raf = new RandomAccessFile(historyFile, "r")) {
             long pointer;
             int count = 0;
 
-            long lastPointer = raf.length() - 1;
             for (pointer = raf.length() - 1; pointer > 0; pointer--) {
                 raf.seek(pointer);
                 if (raf.read() == '\n') {
                     count++;
-
-                    byte[] data = new byte[(int) (lastPointer - pointer)];
-                    raf.read(data, 0, data.length);
-                    result.add(String.valueOf(new StringBuilder().append(data).reverse()));
-
                 }
 
                 if (count == rowsNumber) {
@@ -77,16 +66,15 @@ public class ChatHistory implements AutoCloseable {
                 raf.seek(pointer);
             }
 
-            String line;
-            while((line = raf.readLine()) != null) {
-                result.add(new String(line.getBytes(StandardCharsets.US_ASCII)));
-            }
+            byte[] resultData = new byte[(int) (raf.length() - raf.getFilePointer())];
+            raf.read(resultData);
 
-            return result;
+            return new String(resultData, StandardCharsets.UTF_8);
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        return result;
+        return "";
+
     }
 }

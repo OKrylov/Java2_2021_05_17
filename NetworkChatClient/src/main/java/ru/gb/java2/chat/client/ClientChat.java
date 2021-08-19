@@ -39,6 +39,7 @@ public class ClientChat extends Application {
         getChatStage().show();
         getAuthStage().show();
         getAuthController().initMessageHandler();
+        getChatController().initMessageHandler();
     }
 
     public Stage getPrimaryStage() {
@@ -112,7 +113,6 @@ public class ClientChat extends Application {
 
     public void switchToMainChatWindow(String username) {
         getPrimaryStage().setTitle(username);
-        getChatController().initMessageHandler();
         getAuthController().close();
         getAuthStage().close();
     }

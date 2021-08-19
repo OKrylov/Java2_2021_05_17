@@ -67,6 +67,8 @@ public class AuthController {
         readMessageListener = getNetwork().addReadMessageListener(new ReadCommandListener() {
             @Override
             public void processReceivedCommand(Command command) {
+                if (!isActive())
+                    return;
                 if (command.getType() == CommandType.AUTH_OK) {
                     AuthOkCommandData data = (AuthOkCommandData) command.getData();
                     String username = data.getUsername();
@@ -77,6 +79,10 @@ public class AuthController {
                 }
             }
         });
+    }
+
+    private boolean isActive() {
+        return ClientChat.INSTANCE.getAuthStage().isShowing();
     }
 
     public void close() {

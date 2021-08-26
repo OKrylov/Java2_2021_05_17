@@ -1,7 +1,6 @@
 package ru.gb.java2.chat.server.chat;
 
 import ru.gb.java2.chat.clientserver.Command;
-import ru.gb.java2.chat.server.chat.auth.AuthService;
 import ru.gb.java2.chat.server.chat.auth.IAuthService;
 import ru.gb.java2.chat.server.chat.auth.PersistentDbAuthService;
 
@@ -10,17 +9,21 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class MyServer {
 
     private final List<ClientHandler> clients = new ArrayList<>();
     private IAuthService authService;
+    private ExecutorService executorService;
 
     public void start(int port) {
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             System.out.println("Server has been started");
             authService = createAuthService();
             authService.start();
+            executorService = Executors.newCachedThreadPool();
             while (true) {
                 waitAndProcessNewClientConnection(serverSocket);
             }
@@ -30,6 +33,9 @@ public class MyServer {
         } finally {
             if (authService != null) {
                 authService.stop();
+            }
+            if (executorService != null) {
+                executorService.shutdown();
             }
         }
     }
@@ -97,5 +103,9 @@ public class MyServer {
             client.sendCommand(Command.updateUsersListCommand(users));
         }
 
+    }
+
+    public ExecutorService getExecutorService() {
+        return executorService;
     }
 }

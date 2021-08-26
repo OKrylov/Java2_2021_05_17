@@ -12,6 +12,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import ru.gb.java2.chat.client.ClientChat;
 import ru.gb.java2.chat.client.dialogs.Dialogs;
+import ru.gb.java2.chat.client.service.ChatHistory;
 import ru.gb.java2.chat.client.model.Network;
 import ru.gb.java2.chat.client.model.ReadCommandListener;
 import ru.gb.java2.chat.clientserver.Command;
@@ -27,6 +28,7 @@ import java.util.Optional;
 
 public class ChatController {
 
+    private static final int LAST_HISTORY_ROWS_NUMBER = 100;
     @FXML
     private ListView<String> usersList;
     @FXML
@@ -37,6 +39,7 @@ public class ChatController {
     private TextArea chatHistory;
     @FXML
     private TextArea messageTextArea;
+    private ChatHistory chatHistoryService;
 
     @FXML
     private void sendMessage() {
@@ -67,6 +70,8 @@ public class ChatController {
     }
 
     private void appendMessageToChat(String sender, String message) {
+        String currentText = chatHistory.getText();
+
         chatHistory.appendText(DateFormat.getDateTimeInstance().format(new Date()));
         chatHistory.appendText(System.lineSeparator());
         if (sender != null) {
@@ -77,6 +82,9 @@ public class ChatController {
         chatHistory.appendText(System.lineSeparator());
         chatHistory.appendText(System.lineSeparator());
         messageTextArea.clear();
+
+        String newMessage = chatHistory.getText(currentText.length(), chatHistory.getLength());
+        chatHistoryService.appendText(newMessage);
     }
 
     @FXML
@@ -91,10 +99,24 @@ public class ChatController {
         }
     }
 
+    public void createChatHistory() {
+        this.chatHistoryService = new ChatHistory(Network.getInstance().getCurrentUsername());
+        chatHistoryService.init();
+    }
+
     public void initMessageHandler() {
         Network.getInstance().addReadMessageListener(new ReadCommandListener() {
             @Override
             public void processReceivedCommand(Command command) {
+                if (!isActive()) {
+                    return;
+                }
+
+                if (chatHistoryService == null) {
+                    createChatHistory();
+                    loadChatHistory();
+                }
+
                 if (command.getType() == CommandType.CLIENT_MESSAGE) {
                     ClientMessageCommandData data = (ClientMessageCommandData) command.getData();
                     Platform.runLater(() -> ChatController.this.appendMessageToChat(data.getSender(), data.getMessage()));
@@ -127,7 +149,8 @@ public class ChatController {
         }
     }
 
-    public void closeChat(ActionEvent actionEvent) {
+    public void closeChat(ActionEvent actionEvent) throws Exception {
+        chatHistoryService.close();
         ClientChat.INSTANCE.getPrimaryStage().close();
     }
 
@@ -146,5 +169,16 @@ public class ChatController {
             }
 
         }
+    }
+
+    private boolean isActive() {
+        return ClientChat.INSTANCE.getChatStage().isShowing() && !ClientChat.INSTANCE.getAuthStage().isShowing();
+    }
+
+    private void loadChatHistory() {
+//        String rows = chatHistoryService.loadLastRows(LAST_HISTORY_ROWS_NUMBER);
+        String rows = chatHistoryService.loadLastRows2(LAST_HISTORY_ROWS_NUMBER);
+        chatHistory.clear();
+        chatHistory.setText(rows);
     }
 }
